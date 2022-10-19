@@ -21,6 +21,8 @@ import torch
 from numpy import ndarray
 from torch import Tensor
 
+from utils import make_coord
+
 __all__ = [
     "image_to_tensor", "tensor_to_image",
     "image_resize", "preprocess_one_image",
@@ -183,19 +185,32 @@ def tensor_to_image(tensor: Tensor, range_norm: bool, half: bool) -> Any:
     return image
 
 
-def preprocess_one_image(image_path: str, device: torch.device) -> Tensor:
-    image = cv2.imread(image_path).astype(np.float32) / 255.0
+def preprocess_one_image(image_path: str, upscale_factor: int, device: torch.device) -> [Tensor, Tensor, Tensor]:
+    lr_image = cv2.imread(image_path).astype(np.float32) / 255.0
 
     # BGR to RGB
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    lr_image = cv2.cvtColor(lr_image, cv2.COLOR_BGR2RGB)
 
     # Convert image data to pytorch format data
-    tensor = image_to_tensor(image, False, False).unsqueeze_(0)
+    lr_tensor = image_to_tensor(lr_image, False, False).unsqueeze_(0)
+    batch_size, channels, lr_image_height, lr_image_width = lr_tensor.shape
+
+    # Get image coordinates and image cell
+    sr_tensor = torch.Tensor(batch_size,
+                             channels,
+                             round(lr_image_height * upscale_factor),
+                             round(lr_image_width * upscale_factor))
+    sr_tensor_coord = make_coord(sr_tensor.contiguous().shape[-2:])
+    sr_tensor_cell = torch.ones_like(sr_tensor_coord)
+    sr_tensor_cell[:, 0] *= 2 / sr_tensor.shape[-2]
+    sr_tensor_cell[:, 1] *= 2 / sr_tensor.shape[-1]
 
     # Transfer tensor channel image format data to CUDA device
-    tensor = tensor.to(device=device, memory_format=torch.channels_last, non_blocking=True)
+    lr_tensor = lr_tensor.to(device=device, non_blocking=True)
+    sr_tensor_coord = sr_tensor_coord.unsqueeze_(0).to(device=device, non_blocking=True)
+    sr_tensor_cell = sr_tensor_cell.unsqueeze_(0).to(device=device, non_blocking=True)
 
-    return tensor
+    return lr_tensor, sr_tensor_coord, sr_tensor_cell
 
 
 # Code reference `https://github.com/xinntao/BasicSR/blob/master/basicsr/utils/matlab_functions.py`

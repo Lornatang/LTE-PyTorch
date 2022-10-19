@@ -61,35 +61,32 @@ class TrainValidImageDataset(Dataset):
 
         # Image processing operations
         if self.mode == "Train":
-            gt_image = imgproc.random_crop(gt_image, self.gt_image_size)
-            gt_image = imgproc.random_rotate(gt_image, [90, 180, 270])
-            gt_image = imgproc.random_horizontally_flip(gt_image, 0.5)
-            gt_image = imgproc.random_vertically_flip(gt_image, 0.5)
+            gt_crop_image = imgproc.random_crop(gt_image, self.gt_image_size)
+            gt_crop_image = imgproc.random_rotate(gt_crop_image, [90, 180, 270])
+            gt_crop_image = imgproc.random_horizontally_flip(gt_crop_image, 0.5)
+            gt_crop_image = imgproc.random_vertically_flip(gt_crop_image, 0.5)
         elif self.mode == "Valid":
-            gt_image = imgproc.center_crop(gt_image, self.gt_image_size)
+            gt_crop_image = imgproc.center_crop(gt_image, self.gt_image_size)
         else:
             raise ValueError("Unsupported data processing model, please use `Train` or `Valid`.")
 
-        lr_image = imgproc.image_resize(gt_image, 1 / self.upscale_factor)
+        lr_crop_image = imgproc.image_resize(gt_crop_image, 1 / self.upscale_factor)
 
         # BGR convert RGB
-        gt_image = cv2.cvtColor(gt_image, cv2.COLOR_BGR2RGB)
-        lr_image = cv2.cvtColor(lr_image, cv2.COLOR_BGR2RGB)
+        gt_crop_image = cv2.cvtColor(gt_crop_image, cv2.COLOR_BGR2RGB)
+        lr_crop_image = cv2.cvtColor(lr_crop_image, cv2.COLOR_BGR2RGB)
 
         # Convert image data into Tensor stream format (PyTorch).
         # Note: The range of input and output is between [0, 1]
-        gt_tensor = imgproc.image_to_tensor(gt_image, False, False)
-        lr_tensor = imgproc.image_to_tensor(lr_image, False, False)
-        gt_tensor_coord = make_coord(gt_tensor.shape[-2:])
-        gt_tensor = gt_tensor.view(3, -1).permute(1, 0)
-        sample_lst = np.random.choice(len(gt_tensor_coord), 2304, replace=False)
-        gt_tensor_coord = gt_tensor_coord[sample_lst]
-        gt_tensor = gt_tensor[sample_lst]
-        cell = torch.ones_like(gt_tensor_coord)
-        cell[:, 0] *= 2 / gt_tensor.shape[-2]
-        cell[:, 1] *= 2 / gt_tensor.shape[-1]
+        gt_crop_tensor = imgproc.image_to_tensor(gt_crop_image, False, False)
+        lr_crop_tensor = imgproc.image_to_tensor(lr_crop_image, False, False)
+        gt_tensor_coord = make_coord(gt_crop_tensor.contiguous().shape[-2:])
+        gt_tensor_contiguous = gt_crop_tensor.contiguous().view(3, -1).permute(1, 0)
+        gt_tensor_cell = torch.ones_like(gt_tensor_coord)
+        gt_tensor_cell[:, 0] *= 2 / gt_crop_tensor.shape[-2]
+        gt_tensor_cell[:, 1] *= 2 / gt_crop_tensor.shape[-1]
 
-        return {"gt": gt_tensor, "cell": cell, "coord": gt_tensor_coord, "lr": lr_tensor}
+        return {"gt": gt_tensor_contiguous, "cell": gt_tensor_cell, "coord": gt_tensor_coord, "lr": lr_crop_tensor}
 
     def __len__(self) -> int:
         return len(self.image_file_names)
@@ -122,8 +119,13 @@ class TestImageDataset(Dataset):
         # Note: The range of input and output is between [0, 1]
         gt_tensor = imgproc.image_to_tensor(gt_image, False, False)
         lr_tensor = imgproc.image_to_tensor(lr_image, False, False)
+        gt_tensor_coord = make_coord(gt_tensor.contiguous().shape[-2:])
+        gt_tensor_contiguous = gt_tensor.contiguous().view(3, -1).permute(1, 0)
+        gt_tensor_cell = torch.ones_like(gt_tensor_coord)
+        gt_tensor_cell[:, 0] *= 2 / gt_tensor.shape[-2]
+        gt_tensor_cell[:, 1] *= 2 / gt_tensor.shape[-1]
 
-        return {"gt": gt_tensor, "lr": lr_tensor}
+        return {"gt": gt_tensor_contiguous, "cell": gt_tensor_cell, "coord": gt_tensor_coord, "lr": lr_tensor}
 
     def __len__(self) -> int:
         return len(self.gt_image_file_names)

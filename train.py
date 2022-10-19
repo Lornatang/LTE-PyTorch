@@ -106,15 +106,7 @@ def main():
               epoch,
               scaler,
               writer)
-        # psnr, ssim = validate(lte_model,
-        #                       test_prefetcher,
-        #                       epoch,
-        #                       writer,
-        #                       psnr_model,
-        #                       ssim_model,
-        #                       "Test")
-        psnr = 0.9
-        ssim = 0.9
+        psnr, ssim = validate(lte_model, test_prefetcher, epoch, writer, psnr_model, ssim_model, "Test")
         print("\n")
 
         # Update LR
@@ -321,11 +313,21 @@ def validate(
         while batch_data is not None:
             # Transfer the in-memory data to the CUDA device to speed up the test
             gt = batch_data["gt"].to(device=config.device, non_blocking=True)
+            coord = batch_data["coord"].to(device=config.device, non_blocking=True)
+            cell = batch_data["cell"].to(device=config.device, non_blocking=True)
             lr = batch_data["lr"].to(device=config.device, non_blocking=True)
 
             # Use the generator model to generate a fake sample
-            with amp.autocast():
-                sr = lte_model(lr)
+            sr = lte_model(lr, coord, cell)
+
+            # N,C,HW to N,C,H,W
+            batch_size, channels, lr_image_height, lr_image_width = lr.shape
+            shape = [batch_size,
+                     round(lr_image_height * config.upscale_factor),
+                     round(lr_image_width * config.upscale_factor),
+                     channels]
+            sr = sr.view(*shape).permute(0, 3, 1, 2).contiguous()
+            gt = gt.view(*shape).permute(0, 3, 1, 2).contiguous()
 
             # Statistical loss value for terminal data output
             psnr = psnr_model(sr, gt)

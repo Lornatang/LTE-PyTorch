@@ -38,35 +38,44 @@ def choice_device(device_type: str) -> torch.device:
 
 def build_model(model_arch_name: str, device: torch.device) -> nn.Module:
     # Initialize the super-resolution model
-    g_model = model.__dict__[model_arch_name](in_channels=3,
-                                              out_channels=3,
-                                              channels=64,
-                                              growth_channels=32,
-                                              num_blocks=23)
-    g_model = g_model.to(device=device)
+    sr_model = model.__dict__[model_arch_name](in_channels=3,
+                                               encoder_channels=64,
+                                               out_channels=3,
+                                               channels=256)
+    sr_model = sr_model.to(device=device)
 
-    return g_model
+    return sr_model
 
 
 def main(args):
     device = choice_device(args.device_type)
 
     # Initialize the model
-    g_model = build_model(args.model_arch_name, device)
+    sr_model = build_model(args.model_arch_name, device)
     print(f"Build `{args.model_arch_name}` model successfully.")
 
     # Load model weights
-    g_model = load_state_dict(g_model, args.model_weights_path)
+    sr_model = load_state_dict(sr_model, args.model_weights_path)
     print(f"Load `{args.model_arch_name}` model weights `{os.path.abspath(args.model_weights_path)}` successfully.")
 
     # Start the verification mode of the model.
-    g_model.eval()
+    sr_model.eval()
 
-    lr_tensor = imgproc.preprocess_one_image(args.inputs_path, device)
+    lr_tensor, sr_tensor_coord, sr_tensor_cell = imgproc.preprocess_one_image(args.inputs_path,
+                                                                              args.upscale_factor,
+                                                                              device)
 
     # Use the model to generate super-resolved images
     with torch.no_grad():
-        sr_tensor = g_model(lr_tensor)
+        sr_tensor = sr_model(lr_tensor, sr_tensor_coord, sr_tensor_cell)
+
+    # N,C,HW to N,C,H,W
+    batch_size, channels, lr_image_height, lr_image_width = lr_tensor.shape
+    shape = [batch_size,
+             round(lr_image_height * args.upscale_factor),
+             round(lr_image_width * args.upscale_factor),
+             channels]
+    sr_tensor = sr_tensor.view(*shape).permute(0, 3, 1, 2).contiguous()
 
     # Save image
     sr_image = imgproc.tensor_to_image(sr_tensor, False, False)
@@ -80,7 +89,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Using the model generator super-resolution images.")
     parser.add_argument("--model_arch_name",
                         type=str,
-                        default="rrdbnet_x4")
+                        default="lte")
     parser.add_argument("--inputs_path",
                         type=str,
                         default="./figure/baboon_lr.png",
@@ -89,9 +98,13 @@ if __name__ == "__main__":
                         type=str,
                         default="./figure/baboon_sr.png",
                         help="Super-resolution image path.")
+    parser.add_argument("--upscale_factor",
+                        type=int,
+                        default=4,
+                        help="Model upscale factor")
     parser.add_argument("--model_weights_path",
                         type=str,
-                        default="./results/pretrained_models/ESRGAN_x4-DFO2K-25393df7.pth.tar",
+                        default="./results/LTE-DIV2K/best.pth.tar",
                         help="Model weights file path.")
     parser.add_argument("--device_type",
                         type=str,

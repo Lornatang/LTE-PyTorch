@@ -44,7 +44,7 @@ if mode == "train":
     # Dataset address
     train_gt_images_dir = f"./data/DIV2K/LTE/train"
 
-    test_gt_images_dir = f"./data/Set5/GTmod8"
+    test_gt_images_dir = f"./data/Set5/GTmod12"
     test_lr_images_dir = f"./data/Set5/LRbicx{upscale_factor}"
 
     gt_image_size = int(upscale_factor * 48)
@@ -86,4 +86,4 @@ if mode == "test":
     sr_dir = f"./results/test/{exp_name}"
     gt_dir = "./data/Set5/GTmod12"
 
-    g_model_weights_path = "./results/pretrained_models/ESRGAN_x4-DFO2K-25393df7.pth.tar"
+    model_weights_path = ""
