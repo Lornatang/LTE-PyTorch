@@ -28,7 +28,7 @@ cudnn.benchmark = True
 # When evaluating the performance of the SR model, whether to verify only the Y channel image data
 only_test_y_channel = True
 # Model architecture name
-model_arch_name = "lte"
+model_arch_name = "lte_edsr"
 # Model arch config
 in_channels = 3
 encoder_channels = 64
@@ -38,7 +38,7 @@ upscale_factor = 4
 # Current configuration parameter method
 mode = "train"
 # Experiment name, easy to save weights and log files
-exp_name = "LTE-DIV2K"
+exp_name = "LTE_EDSR-DIV2K"
 
 if mode == "train":
     # Dataset address

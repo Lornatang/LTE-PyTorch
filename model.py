@@ -31,9 +31,14 @@ class LTE(nn.Module):
             encoder_channels: int = 64,
             out_channels: int = 3,
             channels: int = 256,
+            encoder_arch: str = "edsr",
     ) -> None:
         super(LTE, self).__init__()
-        self.encoder = _EDSR(in_channels, encoder_channels)
+        if encoder_arch == "edsr":
+            self.encoder = _EDSR(in_channels, encoder_channels)
+        else:
+            self.encoder = _EDSR(in_channels, encoder_channels)
+
         self.coefficient = nn.Conv2d(encoder_channels, channels, (3, 3), (1, 1), (1, 1))
         self.frequency = nn.Conv2d(encoder_channels, channels, (3, 3), (1, 1), (1, 1))
         self.phase = nn.Linear(2, channels // 2, bias=False)
@@ -215,7 +220,7 @@ class _MLP(nn.Module):
         return out
 
 
-def lte(**kwargs: Any) -> LTE:
-    model = LTE(**kwargs)
+def lte_edsr(**kwargs: Any) -> LTE:
+    model = LTE(encoder_arch="edsr", **kwargs)
 
     return model
