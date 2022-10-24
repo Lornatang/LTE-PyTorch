@@ -46,7 +46,7 @@ modify the `config.py`
 - line 31: `model_arch_name` change to `lte_edsr`.
 - line 37: `upscale_factor` change to `4`.
 - line 39: `mode` change to `test`.
-- line 89: `model_weights_path` change to `./results/pretrained_models/LTE_EDSR-DIV2K-353eb572.pth.tar`.
+- line 89: `model_weights_path` change to `./results/pretrained_models/LTE_EDSR_x4-DIV2K-91316a4b.pth.tar`.
 -
 
 ```bash
@@ -92,7 +92,7 @@ In the following table, the psnr value in `()` indicates the result of the proje
 
 
 ```bash
-# Download `LTE_EDSR-DIV2K-.pth.tar` weights to `./results/pretrained_models`
+# Download `LTE_EDSR_x4-DIV2K-91316a4b.pth.tar.pth.tar` weights to `./results/pretrained_models`
 # More detail see `README.md<Download weights>`
 python3 ./inference.py
 ```
@@ -107,7 +107,7 @@ Output:
 
 ```text
 Build `lte_edsr` model successfully.
-Load `lte_edsr` model weights `./results/pretrained_models/LTE_EDSR-DIV2K-.pth.tar` successfully.
+Load `lte_edsr` model weights `./results/pretrained_models/LTE_EDSR_x4-DIV2K-91316a4b.pth.tar` successfully.
 SR image save to `./figure/baboon_lr.png`
 ```
 

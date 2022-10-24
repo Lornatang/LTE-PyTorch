@@ -86,4 +86,4 @@ if mode == "test":
     sr_dir = f"./results/test/{exp_name}"
     gt_dir = "./data/Set5/GTmod12"
 
-    model_weights_path = ""
+    model_weights_path = "./results/pretrained_models/LTE_EDSR_x4-DIV2K-91316a4b.pth.tar"

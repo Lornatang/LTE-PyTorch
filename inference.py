@@ -104,7 +104,7 @@ if __name__ == "__main__":
                         help="Model upscale factor")
     parser.add_argument("--model_weights_path",
                         type=str,
-                        default="./results/LTE_EDSR-DIV2K/best.pth.tar",
+                        default="./results/pretrained_models/LTE_EDSR_x4-DIV2K-91316a4b.pth.tar",
                         help="Model weights file path.")
     parser.add_argument("--device_type",
                         type=str,
